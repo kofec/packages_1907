@@ -18,14 +18,18 @@ start_domoticz() {
 	config_get syslog "$section" "syslog"
 	config_get userdata "$section" "userdata" userdata /var/lib/domoticz
 
-	[ -n "$loglevel" ] && procd_append_param command -loglevel "$loglevel"
+	[ -n "$loglevel" ] && procd_append_param command -debuglevel
 	[ -n "$syslog" ] && procd_append_param command -syslog "$syslog"
 
 	[ -d "${userdata}" ] || {
 		mkdir -p "${userdata}"
 		chmod 0770 "$userdata"
 		chown domoticz:domoticz "$userdata"
+
 	}
+
+	# Search latest database
+	findLatestDatabase "$userdata"
 
 	# By default, ${userdata}/scripts is a symlink to /etc/domoticz/scripts
 	# and the two dzVents directories under there which Domoticz will actually
@@ -55,6 +59,7 @@ start_service() {
 	procd_set_param command "$PROG"
 	procd_append_param command -noupdates
 	procd_append_param command -approot /usr/share/domoticz/
+#	procd_append_param command -wwwbind 192.168.1.1
 
 	config_load "domoticz"
 	config_get_bool disabled "$section" "disabled" 0
@@ -65,7 +70,40 @@ start_service() {
 	procd_set_param respawn
 	procd_set_param stdout 0
 	procd_set_param term_timeout 10
-	procd_set_param user "domoticz"
+	procd_set_param user "root"
 
 	procd_close_instance
+}
+
+findLatestDatabase() {
+# /proc/uptime
+# This file contains two numbers: the uptime of the system
+# (seconds), and the amount of time spent in idle process
+# (seconds).
+	Uptime="$(cat /proc/uptime)"
+	Uptime="${Uptime%%.*}"
+	if [ "$Uptime" -lt "120" ]; then
+		destinationFolder=$1
+		yourfilenames=`ls /root/domoticz*[0-9].db`
+		local yourfilenames_res=$?
+		if [ "$yourfilenames_res" -eq "0" ]; then
+			LatestDate=0
+			for eachfile in $yourfilenames
+			do
+				echo $eachfile
+				if [ "${eachfile//[!0-9]/}" -gt "$LatestDate" ]; then
+					LatestDate=${eachfile//[!0-9]/}
+				fi
+			done
+			if [ "$LatestDate" -gt "0" ]; then
+				if [ -d "$destinationFolder" ]; then
+					cp "/root/domoticz${LatestDate}.db" "${destinationFolder}domoticz.db"
+					chmod 0770 "$destinationFolder"
+					chown domoticz:domoticz "$destinationFolder"
+				fi
+			fi
+		fi
+	else
+		logger "Uptime over 120s - $Uptime" -t Domoticz
+	fi
 }

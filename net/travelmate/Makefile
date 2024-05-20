@@ -17,7 +17,7 @@ define Package/travelmate
 	SECTION:=net
 	CATEGORY:=Network
 	TITLE:=A wlan connection manager for travel router
-	DEPENDS:=+iwinfo +jshn +jsonfilter +uclient-fetch +dnsmasq
+	DEPENDS:=+iwinfo +jshn +jsonfilter +uclient-fetch
 	PKGARCH:=all
 endef
 
