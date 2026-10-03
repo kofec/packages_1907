@@ -319,7 +319,7 @@ f_check()
 										f_jsnup
 										break 2
 									fi
-									if [ -z "${cp_domain}" ] || [ -n "$(uci_get "dhcp" "@dnsmasq[0]" "rebind_domain" | grep -Fo "${cp_domain}")" ]
+									if [ -z "${cp_domain}" ] || [ ! -x "/etc/init.d/dnsmasq" ] || [ -n "$(uci_get "dhcp" "@dnsmasq[0]" "rebind_domain" | grep -Fo "${cp_domain}")" ]
 									then
 										break
 									fi
@@ -332,7 +332,7 @@ f_check()
 										f_log "info" "captive portal login section '${uci_section}' added to travelmate config section"
 									fi
 								done
-								if [ -n "$(uci -q changes "dhcp")" ]
+								if [ -n "$(uci -q changes "dhcp")" ] && [ -x "/etc/init.d/dnsmasq" ]
 								then
 									uci_commit "dhcp"
 									/etc/init.d/dnsmasq reload
